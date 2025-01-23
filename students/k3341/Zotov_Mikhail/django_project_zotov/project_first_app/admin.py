@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import CarOwner, Car, DriverLicense, Ownership
 
-admin.site.register(CarOwner)
-admin.site.register(Car)
-admin.site.register(DriverLicense)
-admin.site.register(Ownership)
+admin.site.register_user(CarOwner)
+admin.site.register_user(Car)
+admin.site.register_user(DriverLicense)
+admin.site.register_user(Ownership)

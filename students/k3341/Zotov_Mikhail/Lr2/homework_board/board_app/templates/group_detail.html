@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная страница{% endblock %}
+
+{% block content %}
+<h2>Состав группы {{ group }}.</h2>
+{% if students %}
+{% for student in students %}
+<ul>
+    <li>{{ student.first_name }} {{ student.last_name }}</li>
+</ul>
+{% endfor %}
+{% else %}
+<p>В группе нет студентов</p>
+{% endif %}
+{% endblock %}

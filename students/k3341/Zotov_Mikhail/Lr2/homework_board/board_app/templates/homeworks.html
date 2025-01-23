@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная страница{% endblock %}
+
+{% block content %}
+<h2>Домашние задания</h2>
+<ul>
+    {% for homework in homeworks %}
+    <p><strong></strong>{{ homework }}</p>
+    {% endfor %}
+</ul>
+{% endblock %}

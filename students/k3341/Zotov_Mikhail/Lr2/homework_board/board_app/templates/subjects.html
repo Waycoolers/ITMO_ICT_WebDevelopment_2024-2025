@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная страница{% endblock %}
+
+{% block content %}
+<h1>Предметы для группы {{ request.user.group }}</h1>
+    <ul>
+        {% for subject in subjects %}
+            <li>{{ subject.name }}</li>
+        {% empty %}
+            <li>Нет предметов для вашей группы.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
