@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-        <title>Доска домашних заданий - Зотов Михаил Дмитриевич 2.2</title>
+        <title>Модели - Зотов Михаил Дмитриевич 2.2</title>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -135,7 +135,7 @@
                     <ul class="mb-5 drac-list drac-list-none">
                             
     <li class="drac-box-ternary">
-        <a href="."
+        <a href="../../lab2/main"
             class="
             drac-anchor d-inline-flex align-items-center border-0 drac-text-purple--hover">
             Введение
@@ -143,7 +143,7 @@
     </li>
                             
     <li class="drac-box-ternary">
-        <a href="../models"
+        <a href="../../lab2/models"
             class="
             drac-anchor d-inline-flex align-items-center border-0 drac-text-purple--hover">
             Модели
@@ -151,7 +151,7 @@
     </li>
                             
     <li class="drac-box-ternary">
-        <a href="../views"
+        <a href="../../lab2/views"
             class="
             drac-anchor d-inline-flex align-items-center border-0 drac-text-purple--hover">
             Запросы
@@ -171,7 +171,7 @@
                     <ul class="mb-5 drac-list drac-list-none">
                             
     <li class="drac-box-ternary">
-        <a href="../../lab3/main"
+        <a href="../main"
             class="
             drac-anchor d-inline-flex align-items-center border-0 drac-text-purple--hover">
             Введение
@@ -179,7 +179,7 @@
     </li>
                             
     <li class="drac-box-ternary">
-        <a href="../../lab3/models"
+        <a href="."
             class="
             drac-anchor d-inline-flex align-items-center border-0 drac-text-purple--hover">
             Модели
@@ -187,7 +187,7 @@
     </li>
                             
     <li class="drac-box-ternary">
-        <a href="../../lab3/endpoints"
+        <a href="../endpoints"
             class="
             drac-anchor d-inline-flex align-items-center border-0 drac-text-purple--hover">
             Эндпоинты
@@ -271,21 +271,113 @@
             <!-- block content -->
                 <section class="p-md-5 section-content">
     <article>
-        <p><h1 id="_1">Доска домашних заданий<br><br></h1>
-<h3 id="_2">Условие</h3>
-<p>О домашнем задании должна храниться следующая информация: предмет,
-преподаватель, дата выдачи, период выполнения, текст задания, информация о штрафах.
-Необходимо реализовать следующий функционал:</p>
-<ul>
-<li>Регистрация новых пользователей.</li>
-<li>Просмотр домашних заданий по всем дисциплинам (сроки выполнения,
-описание задания).</li>
-<li>Сдача домашних заданий в текстовом виде.</li>
-<li>Администратор (учитель) должен иметь возможность поставить оценку за
-задание средствами Django-admin.</li>
-<li>В клиентской части должна формироваться таблица, отображающая оценки
-всех учеников класса.</li>
-</ul></p>
+        <p><h1 id="_1">Модели</h1>
+<p><img alt="img.png" src="../img.png" /></p>
+<pre><code class="language-python">class Floor(models.Model):
+    number = models.PositiveIntegerField(unique=True)
+
+    def __str__(self):
+        return f&quot;Этаж {self.number}&quot;
+
+
+class Room(models.Model):
+    ROOM_TYPE_CHOICES = (
+        (&quot;single&quot;, &quot;Одноместный&quot;),
+        (&quot;double&quot;, &quot;Двухместный&quot;),
+        (&quot;triple&quot;, &quot;Трехместный&quot;),
+    )
+
+    number = models.PositiveIntegerField(unique=True)
+    floor = models.ForeignKey(Floor, on_delete=models.CASCADE, related_name=&quot;rooms&quot;)
+    room_type = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, null=False, blank=False)
+    price_per_day = models.PositiveIntegerField(default=0)
+    phone = models.CharField(max_length=15)
+
+    def __str__(self):
+        return f&quot;Комната {self.number} ({self.room_type})&quot;
+
+    @classmethod
+    def get_free_rooms(cls):
+        today = timezone.now().date()
+        occupied_rooms = ClientRoom.objects.filter(
+            Q(check_out_date__isnull=True) | Q(check_out_date__gte=today)
+        ).values_list('room_id', flat=True)
+        return cls.objects.exclude(id__in=occupied_rooms)
+
+
+class Client(models.Model):
+    passport_number = models.CharField(max_length=20, unique=True)
+    last_name = models.CharField(max_length=50)
+    first_name = models.CharField(max_length=50)
+    city = models.CharField(max_length=100, db_index=True)
+
+    def __str__(self):
+        return f&quot;{self.last_name} {self.first_name}&quot;
+
+
+class ClientRoom(models.Model):
+    ROOM_CAPACITY = {
+        &quot;single&quot;: 1,
+        &quot;double&quot;: 2,
+        &quot;triple&quot;: 3,
+    }
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name=&quot;stay_history&quot;)
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name=&quot;stay_history&quot;)
+    check_in_date = models.DateField(db_index=True, null=True, blank=True)
+    check_out_date = models.DateField(null=True, blank=True, db_index=True)
+    count_of_clients = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f&quot;{self.client} в Комнате {self.room.number} ({self.check_in_date} - {self.check_out_date})&quot;
+
+    def clean(self):
+        if self.check_out_date and self.check_out_date &lt; self.check_in_date:
+            raise ValidationError(&quot;Дата выезда не может быть раньше заезда.&quot;)
+
+        max_capacity = self.ROOM_CAPACITY.get(self.room.room_type, 1)
+        if self.count_of_clients &gt; max_capacity:
+            raise ValidationError(f&quot;Максимальная вместимость комнаты {max_capacity} человека(ов).&quot;)
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
+
+class Employee(models.Model):
+    last_name = models.CharField(max_length=50)
+    first_name = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f&quot;{self.last_name} {self.first_name}&quot;
+
+
+class FloorSchedule(models.Model):
+    floor = models.ForeignKey(Floor, on_delete=models.CASCADE, related_name=&quot;schedules&quot;)
+    day_of_week = models.CharField(
+        max_length=9,
+        choices=[
+            (&quot;Monday&quot;, &quot;Понедельник&quot;),
+            (&quot;Tuesday&quot;, &quot;Вторник&quot;),
+            (&quot;Wednesday&quot;, &quot;Среда&quot;),
+            (&quot;Thursday&quot;, &quot;Четверг&quot;),
+            (&quot;Friday&quot;, &quot;Пятница&quot;),
+            (&quot;Saturday&quot;, &quot;Суббота&quot;),
+            (&quot;Sunday&quot;, &quot;Воскресенье&quot;),
+        ]
+    )
+
+    def __str__(self):
+        return f&quot;Уборка на этаже {self.floor.number} в {self.get_day_of_week_display()}&quot;
+
+
+class CleaningAssignment(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name=&quot;cleaning_assignments&quot;)
+    floor_schedule = models.ForeignKey(FloorSchedule, on_delete=models.CASCADE, related_name=&quot;cleaning_assignments&quot;)
+
+    def __str__(self):
+        return f&quot;{self.employee} убирает {self.floor_schedule}&quot;
+</code></pre></p>
     </article>
 </section>
             <!-- endblock -->
